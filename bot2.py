@@ -42,19 +42,17 @@ voice_controller_name = config['player_control']
 
 playqueue = []
 
-class YTDLSource(discord.PCMVolumeTransformer):
-    def __init__(self, source, *, data, volume=0.5):
-        super().__init__(source, volume)
-
+class YTDLSource():
+    def __init__(self, source, *, data):
         self.data = data
 
         self.title = data.get('title')
         self.url = data.get('url')
+        self.source = source
 
     @classmethod
-    async def from_url(cls, url, *, loop=None, stream=False):
-        loop = loop or asyncio.get_event_loop()
-        data = await loop.run_in_executor(None, lambda: ytdl.extract_info(url, download=not stream))
+    async def from_url(cls, url, *, stream=False):
+        data = ytdl.extract_info(url, download=not stream)
 
         if 'entries' in data:
             # take first item from a playlist
@@ -97,13 +95,13 @@ def track_finished(e=None):
     return
   
   if len(playqueue):
-    play_next()
+    coro = play_next()
+    asyncio.run_coroutine_threadsafe(coro, voice_client.loop)
 
 async def play_next():
   next_track = playqueue.pop(0)
   print(f'attempting to play {next_track["song"].title}')
-  print(voice_client)
-  voice_client.play(next_track['song'], after=track_finished)
+  voice_client.play(next_track['song'].source, after=track_finished)
   await voice_controller.send(f'Now playing: {next_track["song"].title}')
 
 @commands.check(check_if_in_controller)
@@ -112,7 +110,7 @@ async def play(ctx, *, url):
     """Plays from a url (almost anything youtube_dl supports)"""
 
     async with ctx.typing():
-        player = await YTDLSource.from_url(url, loop=bot.loop)
+        player = await YTDLSource.from_url(url)
         playqueue.append({
           'user': ctx.author,
           'song': player
@@ -120,9 +118,7 @@ async def play(ctx, *, url):
 
     await ctx.send(f'{ctx.author} added {player.title} to queue.')
 
-    print('check if playing')
-    print(voice_client.is_playing())
-    if not voice_client.is_playing():
+    if not ctx.voice_client.is_playing():
       await play_next()
 
 @commands.check(check_if_in_controller)
@@ -142,8 +138,6 @@ async def ping(ctx):
 async def ensure_voice(ctx):
   if ctx.voice_client is None:
     await setup_voicechans()
-  elif ctx.voice_client.is_playing():
-    ctx.voice_client.stop()
 
 @bot.event
 async def on_ready():
