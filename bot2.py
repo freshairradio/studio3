@@ -114,7 +114,7 @@ def track_finished(e=None):
     coro = voice_controller.send("No more tracks in the queue... :(")
     asyncio.run_coroutine_threadsafe(coro, voice_client.loop)
     print('Disconnecting from voice...')
-    asyncio.run_coroutine_threadsafe(voice_controller.disconnect(), voice_client.loop)
+    asyncio.run_coroutine_threadsafe(voice_client.disconnect(), voice_client.loop)
 
 async def play_next():
   global played_since_jingle
