@@ -1,0 +1,6 @@
+discord_token: NzYzNTE0ODgyMTE2NTUwNjg5.X340pQ.432GK1fOI7StO4RcyOSifcPWPsQ
+player_control: bot-testground
+player_playout: bot-testvoice
+fallback_playlist:
+  - https://www.youtube.com/watch?v=LWV9sSE0EVM
+  - https://www.youtube.com/watch?v=udQPlG4U2eE
