@@ -6,9 +6,12 @@ import yaml
 
 from discord.ext import commands
 
+with open('./config.yaml') as file:
+  config = yaml.load(file, Loader=yaml.FullLoader)
+  print(config)
+
 # Suppress noise about console usage from errors
 youtube_dl.utils.bug_reports_message = lambda: ''
-
 
 ytdl_format_options = {
     'format': 'bestaudio/best',
@@ -21,7 +24,8 @@ ytdl_format_options = {
     'quiet': True,
     'no_warnings': True,
     'default_search': 'auto',
-    'source_address': '0.0.0.0' # bind to ipv4 since ipv6 addresses cause issues sometimes
+    'source_address': '0.0.0.0', # bind to ipv4 since ipv6 addresses cause issues sometimes
+    'outtmpl': config['ytdl_archive_path']+'/%(title)s.%(ext)s'
 }
 
 ffmpeg_options = {
@@ -29,10 +33,6 @@ ffmpeg_options = {
 }
 
 ytdl = youtube_dl.YoutubeDL(ytdl_format_options)
-
-with open('./config.yaml') as file:
-  config = yaml.load(file, Loader=yaml.FullLoader)
-  print(config)
 
 voice_channel = None
 voice_channel_name = config['player_playout']
@@ -96,6 +96,9 @@ def track_finished(e=None):
   
   if len(playqueue):
     coro = play_next()
+    asyncio.run_coroutine_threadsafe(coro, voice_client.loop)
+  else:
+    coro = voice_controller.send("No more tracks in the queue... :(")
     asyncio.run_coroutine_threadsafe(coro, voice_client.loop)
 
 async def play_next():

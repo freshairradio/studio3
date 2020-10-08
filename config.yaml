@@ -4,3 +4,4 @@ player_playout: bot-testvoice
 fallback_playlist:
   - https://www.youtube.com/watch?v=LWV9sSE0EVM
   - https://www.youtube.com/watch?v=udQPlG4U2eE
+ytdl_archive_path: ./ytdl-archive
