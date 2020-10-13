@@ -19,6 +19,5 @@ ADD Pipfile .
 RUN pipenv install --system --deploy --ignore-pipfile
 
 ADD bot2.py .
-ADD start.sh .
 
 ENTRYPOINT [ "python3", "-u", "bot2.py" ]
