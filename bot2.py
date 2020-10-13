@@ -41,6 +41,7 @@ voice_channel_name = config['player_playout']
 voice_client = None
 voice_controller = None
 voice_controller_name = config['player_control']
+player_volume = 1
 
 playqueue = []
 
@@ -58,7 +59,10 @@ class YTDLSource():
 
     @classmethod
     async def from_url(cls, url, *, stream=False):
-        data = ytdl.extract_info(url, download=not stream)
+        try:
+          data = ytdl.extract_info(url, download=not stream)
+        except Exception as e:
+          print(e)
 
         if 'entries' in data:
             # take first item from a playlist
@@ -75,7 +79,7 @@ def setup_jingles():
   pass
 
 bot = commands.Bot(command_prefix=commands.when_mentioned_or("!"),
-                description='freshair radio Discord scheduler')
+                description='freshair radio Discord playout')
 
 async def setup_voicechans():
   global voice_channel
@@ -118,6 +122,7 @@ def track_finished(e=None):
 
 async def play_next():
   global played_since_jingle
+  global player_volume
 
   if jingle_every_n_tracks <= played_since_jingle:
     print('playing a jingle!')
@@ -132,15 +137,23 @@ async def play_next():
 
   next_track = playqueue.pop(0)
   print(f'attempting to play {next_track["song"].title}')
-  voice_client.play(next_track['song'].source, after=track_finished)
+
+  try:
+    transformer = discord.PCMVolumeTransformer(next_track['song'].source, volume=player_volume)
+    voice_client.play(transformer, after=track_finished)
+  except Exception as e:
+    print(e)
+    await voice_controller.send(f'Something went very wrong... \`{e}\` Bye I guess?')
+    await voice_client.disconnect()
+    return
+  
   played_since_jingle += 1
   await voice_controller.send(f'Now playing: {next_track["song"].title}')
 
 @commands.check(check_if_in_controller)
 @bot.command(name='play')
 async def play(ctx, *, url):
-    """Plays from a url (almost anything youtube_dl supports)"""
-
+    """Play a song (search youtube or give url)"""
     async with ctx.typing():
         player = await YTDLSource.from_url(url)
         playqueue.append({
@@ -154,7 +167,6 @@ async def play(ctx, *, url):
       await play_next()
 
 @commands.check(check_if_in_controller)
-@commands.has_role('admin')
 @bot.command(name='stop')
 async def stop(ctx):
     """Stops current playout and disconnects from voice"""
@@ -163,7 +175,6 @@ async def stop(ctx):
     await voice_client.disconnect()
 
 @commands.check(check_if_in_controller)
-@commands.has_role('committee')
 @bot.command(name='skip')
 async def skip(ctx):
     """Skips current track"""
@@ -183,16 +194,30 @@ async def clear(ctx):
     await ctx.send(f'{ctx.author} has cleared the play queue.')
 
 @bot.command(name='ping')
-@commands.has_role('admin')
 async def ping(ctx):
-  """Check the bot is responding..."""
-  await ctx.send('PONG! Yup, I\'m alive :D')
+    """Check the bot is responding..."""
+    await ctx.send('PONG! Yup, I\'m alive :D')
+
+@bot.command(name='volume')
+async def volume(ctx, newvolume: int):
+    """Changes the player's volume"""
+
+    global player_volume
+    player_volume = newvolume / 100
+
+    await ctx.send("Changed volume to {}%".format(newvolume))
+
+    if ctx.voice_client is None:
+        return
+    
+    ctx.voice_client.source.volume = player_volume
+    
 
 @play.before_invoke
 @stop.before_invoke
 async def ensure_voice(ctx):
-  if ctx.voice_client is None:
-    await connect_voice_client()
+    if ctx.voice_client is None:
+      await connect_voice_client()
 
 @bot.event
 async def on_ready():
