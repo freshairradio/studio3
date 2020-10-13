@@ -1,0 +1,20 @@
+version: '3.3'
+
+services:
+  bot:
+    build: .
+    volumes:
+      - type: bind
+        source: ./jingles
+        target: /opt/bot/jingles
+      - type: bind
+        source: ./ytdl-archive
+        target: /opt/bot/ytdl-archive
+    environment: 
+      - discord_token=NzYzNTE0ODgyMTE2NTUwNjg5.X340pQ.432GK1fOI7StO4RcyOSifcPWPsQ
+      - player_control=bot-testground
+      - player_playout=bot-testvoice
+      - ytdl_archive_path=/opt/bot/ytdl-archive
+      - jingle_every_n_tracks=1
+      - jingle_search_path=/opt/bot/jingles/*
+      

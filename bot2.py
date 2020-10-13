@@ -5,12 +5,9 @@ import youtube_dl
 import yaml
 import glob
 import random
+from os import environ
 
 from discord.ext import commands
-
-with open('./config.yaml') as file:
-  config = yaml.load(file, Loader=yaml.FullLoader)
-  print(config)
 
 # Suppress noise about console usage from errors
 youtube_dl.utils.bug_reports_message = lambda: ''
@@ -27,7 +24,7 @@ ytdl_format_options = {
     'no_warnings': True,
     'default_search': 'auto',
     'source_address': '0.0.0.0', # bind to ipv4 since ipv6 addresses cause issues sometimes
-    'outtmpl': config['ytdl_archive_path']+'/%(title)s.%(ext)s'
+    'outtmpl': environ['ytdl_archive_path']+'/%(title)s.%(ext)s'
 }
 
 ffmpeg_options = {
@@ -37,16 +34,16 @@ ffmpeg_options = {
 ytdl = youtube_dl.YoutubeDL(ytdl_format_options)
 
 voice_channel = None
-voice_channel_name = config['player_playout']
+voice_channel_name = environ['player_playout']
 voice_client = None
 voice_controller = None
-voice_controller_name = config['player_control']
+voice_controller_name = environ['player_control']
 player_volume = 1
 
 playqueue = []
 
 played_since_jingle = 0
-jingle_every_n_tracks = config['jingle_every_n_tracks']
+jingle_every_n_tracks = int(environ['jingle_every_n_tracks'])
 jingles = []
 
 class YTDLSource():
@@ -73,8 +70,8 @@ class YTDLSource():
 
 def setup_jingles():
   global jingles
-  print(f'Looking for jingles in {config["jingle_search_path"]}...')
-  jingles = glob.glob(config['jingle_search_path'])
+  print(f'Looking for jingles in {environ["jingle_search_path"]}...')
+  jingles = glob.glob(environ['jingle_search_path'])
   print(f'Found {len(jingles)} jingles.')
   pass
 
@@ -87,9 +84,9 @@ async def setup_voicechans():
   print('Setting up playout voice channel...')
 
   for channel in bot.guilds[0].channels:
-    if channel.name == config['player_playout']:
+    if channel.name == environ['player_playout']:
       voice_channel = channel
-    if channel.name == config['player_control']:
+    if channel.name == environ['player_control']:
       voice_controller = channel
 
   print(voice_channel)
@@ -247,6 +244,9 @@ async def on_command_error(ctx, error):
   if isinstance(error, commands.errors.CheckFailure):
     await ctx.send('You do not have the correct role for this command.')
 
+
+print("Bot is getting ready...")
+print(environ)
 setup_jingles()
 
-bot.run(config['discord_token'])
+bot.run(environ['discord_token'])
