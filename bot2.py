@@ -193,11 +193,28 @@ async def clear(ctx):
     playqueue = []
     await ctx.send(f'{ctx.author} has cleared the play queue.')
 
+@commands.check(check_if_in_controller)
 @bot.command(name='ping')
 async def ping(ctx):
     """Check the bot is responding..."""
     await ctx.send('PONG! Yup, I\'m alive :D')
 
+@bot.command(name='q')
+async def queue(ctx):
+    """What's currently queued?"""
+    if len(playqueue) == 0:
+        await ctx.send('Nothing in the queue at the moment...')
+        return
+    
+    out = ""
+    num = 1
+    for song in playqueue:
+      out += f"{num}. {song['song'].title} - {song['user']}\n"
+      num += 1
+
+    await ctx.send(f"We've got {len(playqueue)} songs queued up:\n```{out}```")
+
+@commands.check(check_if_in_controller)
 @bot.command(name='volume')
 async def volume(ctx, newvolume: int):
     """Changes the player's volume"""
